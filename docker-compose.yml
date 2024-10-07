@@ -1,0 +1,108 @@
+services:
+  nc-mariadb:
+    image: mariadb:10.6
+    container_name: nc-mariadb
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - nc-mariadb-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: nextcloud
+      MYSQL_PASSWORD: nextcloud
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+
+  nc-redis:
+    image: redis:alpine
+    container_name: nc-redis
+    restart: always
+
+  nc:
+    image: nextcloud:29
+    container_name: nc
+    depends_on:
+      - nc-mariadb
+      - nc-redis
+    hostname: cloud.${DOMAIN}
+    env_file:
+      - nextcloud.env
+      - smtp.env
+    environment:
+      # reverse proxy
+      APACHE_DISABLE_REWRITE_IP: 1
+      TRUSTED_PROXIES: "127.0.0.1/32 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16"
+      NEXTCLOUD_TRUSTED_DOMAINS: cloud.${DOMAIN}
+      OVERWRITECLIURL: https://cloud.${DOMAIN}
+      OVERWRITEHOST: cloud.${DOMAIN}
+      OVERWRITEPROTOCOL: https
+      # db
+      MYSQL_HOST: nc-mariadb
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: nextcloud
+      # redis
+      REDIS_HOST: nc-redis
+    restart: always
+    volumes:
+      - nc-data:/var/www/html
+
+  nc-cron:
+    image: nextcloud:29
+    container_name: nc-cron
+    restart: unless-stopped
+    depends_on:
+      - nc
+    hostname: cloud.${DOMAIN}
+    env_file:
+      - nextcloud.env
+      - smtp.env
+    environment:
+      # reverse proxy
+      APACHE_DISABLE_REWRITE_IP: 1
+      TRUSTED_PROXIES: "127.0.0.1/32 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16"
+      NEXTCLOUD_TRUSTED_DOMAINS: cloud.${DOMAIN}
+      OVERWRITECLIURL: https://cloud.${DOMAIN}
+      OVERWRITEHOST: cloud.${DOMAIN}
+      OVERWRITEPROTOCOL: https
+      # db
+      MYSQL_HOST: nc-mariadb
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: nextcloud
+      # redis
+      REDIS_HOST: nc-redis
+    volumes:
+      - nc-data:/var/www/html
+    entrypoint: /cron.sh
+
+  https-portal:
+    image: steveltn/https-portal:1
+    container_name: https-portal
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+    environment:
+      DOMAINS: >-
+        cloud.${DOMAIN} -> http://nc
+      # STAGE: production
+      CLIENT_MAX_BODY_SIZE: 0
+      WEBSOCKET: true
+      LISTEN_IPV6: true
+    volumes:
+      - https-portal-data:/var/lib/https-portal
+
+volumes:
+  nc-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/nc
+      o: bind
+  nc-mariadb-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/nc-mariadb
+      o: bind
+  https-portal-data:
