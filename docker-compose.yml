@@ -92,6 +92,47 @@ services:
     volumes:
       - https-portal-data:/var/lib/https-portal
 
+  netdata:
+    image: netdata/netdata
+    container_name: nd
+    pid: host
+    network_mode: service:tailscale
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - nd-config:/etc/netdata
+      - nd-lib:/var/lib/netdata
+      - nd-cache:/var/cache/netdata
+      - /:/host/root:ro,rslave
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/log:/host/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  tailscale:
+    image: ghcr.io/tailscale/tailscale:v1.74.1
+    container_name: ts
+    restart: unless-stopped
+    env_file:
+      - tailscale.env
+    environment:
+      - TS_SERVE_CONFIG=/config/ts-serve.json
+    volumes:
+      - "ts-data:/var/lib"
+      - "./ts-serve.json:/config/ts-serve.json"
+      - "/dev/net/tun:/dev/net/tun"
+    cap_add:
+      - net_admin
+      - sys_module
+
 volumes:
   nc-data:
     driver: local
@@ -104,5 +145,29 @@ volumes:
     driver_opts:
       type: none
       device: $PWD/data/nc-mariadb
+      o: bind
+  nd-config:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/nd/config
+      o: bind
+  nd-lib:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/nd/lib
+      o: bind
+  nd-cache:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/nd/cache
+      o: bind
+  ts-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/ts
       o: bind
   https-portal-data:
