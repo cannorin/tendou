@@ -85,7 +85,7 @@ services:
     environment:
       DOMAINS: >-
         cloud.${DOMAIN} -> http://nc
-      # STAGE: production
+      STAGE: production
       CLIENT_MAX_BODY_SIZE: 0
       WEBSOCKET: true
       LISTEN_IPV6: true
