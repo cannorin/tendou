@@ -11,3 +11,6 @@ mkdir -p ./data/nd/cache
 mkdir -p ./data/nd/config
 mkdir -p ./data/nd/lib
 mkdir -p ./data/ts
+mkdir -p ./data/gitea
+sudo chown -R 1000:1000 data/gitea 
+mkdir -p ./data/gitea-pg

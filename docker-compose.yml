@@ -1,21 +1,7 @@
 services:
-  nc-mariadb:
-    image: mariadb:10.6
-    container_name: nc-mariadb
-    restart: always
-    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
-    volumes:
-      - nc-mariadb-data:/var/lib/mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: nextcloud
-      MYSQL_PASSWORD: nextcloud
-      MYSQL_DATABASE: nextcloud
-      MYSQL_USER: nextcloud
+  # Public services
 
-  nc-redis:
-    image: redis:alpine
-    container_name: nc-redis
-    restart: always
+  ## Nextcloud
 
   nc:
     image: nextcloud:29
@@ -75,6 +61,63 @@ services:
       - nc-data:/var/www/html
     entrypoint: /cron.sh
 
+  nc-mariadb:
+    image: mariadb:10.6
+    container_name: nc-mariadb
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - nc-mariadb-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: nextcloud
+      MYSQL_PASSWORD: nextcloud
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+
+  nc-redis:
+    image: redis:alpine
+    container_name: nc-redis
+    restart: always
+
+  ## Gitea
+
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    env_file:
+      - gitea.env
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__SERVER__HTTP_PORT=80
+      - GITEA__SERVER__SSH_PORT=2222
+      - GITEA__SERVER__SSH_LISTEN_PORT=22
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=gitea-pg:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea
+    restart: always
+    ports:
+      - "2222:22"
+    volumes:
+      - gitea-data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+  gitea-pg:
+    image: postgres:14
+    container_name: gitea-pg
+    restart: always
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=gitea
+      - POSTGRES_DB=gitea
+    volumes:
+      - gitea-pg-data:/var/lib/postgresql/data
+
+  ## Reverse proxy for public services
+
   https-portal:
     image: steveltn/https-portal:1
     container_name: https-portal
@@ -84,13 +127,18 @@ services:
     restart: always
     environment:
       DOMAINS: >-
-        cloud.${DOMAIN} -> http://nc
+        cloud.${DOMAIN} -> http://nc,
+        git.${DOMAIN} -> http://gitea
       STAGE: production
       CLIENT_MAX_BODY_SIZE: 0
       WEBSOCKET: true
       LISTEN_IPV6: true
     volumes:
       - https-portal-data:/var/lib/https-portal
+
+  # Private services
+
+  ## Netdata
 
   netdata:
     image: netdata/netdata
@@ -116,6 +164,8 @@ services:
       - /etc/os-release:/host/etc/os-release:ro
       - /var/log:/host/var/log:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  ## Tailscale for private services
 
   tailscale:
     image: ghcr.io/tailscale/tailscale:v1.74.1
@@ -169,5 +219,17 @@ volumes:
     driver_opts:
       type: none
       device: $PWD/data/ts
+      o: bind
+  gitea-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/gitea
+      o: bind
+  gitea-pg-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/gitea-pg
       o: bind
   https-portal-data:
