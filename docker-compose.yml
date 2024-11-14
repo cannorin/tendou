@@ -11,8 +11,8 @@ services:
       - nc-redis
     hostname: cloud.${DOMAIN}
     env_file:
-      - nextcloud.env
-      - smtp.env
+      - config/nextcloud/env
+      - config/smtp/env
     environment:
       # reverse proxy
       APACHE_DISABLE_REWRITE_IP: 1
@@ -40,8 +40,8 @@ services:
       - nc
     hostname: cloud.${DOMAIN}
     env_file:
-      - nextcloud.env
-      - smtp.env
+      - config/nextcloud/env
+      - config/smtp/env
     environment:
       # reverse proxy
       APACHE_DISABLE_REWRITE_IP: 1
@@ -85,7 +85,7 @@ services:
     image: gitea/gitea:latest
     container_name: gitea
     env_file:
-      - gitea.env
+      - config/gitea/env
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -116,6 +116,47 @@ services:
     volumes:
       - gitea-pg-data:/var/lib/postgresql/data
 
+  ## Misskey
+
+  mk:
+    build: ./remote/misskey
+    container_name: mk
+    depends_on:
+      mk-pg:
+        condition: service_healthy
+      mk-redis:
+        condition: service_healthy
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - config/misskey/env
+    volumes:
+      - ./data/mk:/misskey/files
+      - ./config/misskey:/misskey/.config:ro
+  
+  mk-pg:
+    image: postgres:15-alpine
+    container_name: mk-pg
+    restart: always
+    env_file:
+      - config/misskey/env
+    healthcheck:
+      test: "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"
+      interval: 5s
+      retries: 20
+    volumes:
+      - ./data/mk-pg:/var/lib/postgresql/data
+
+  mk-redis:
+    image: redis:7-alpine
+    container_name: mk-redis
+    restart: always
+    healthcheck:
+      test: "redis-cli ping"
+      interval: 5s
+      retries: 20
+
   ## Reverse proxy for public services
 
   https-portal:
@@ -128,7 +169,8 @@ services:
     environment:
       DOMAINS: >-
         cloud.${DOMAIN} -> http://nc,
-        git.${DOMAIN} -> http://gitea
+        git.${DOMAIN} -> http://gitea,
+        misskey.${DOMAIN} -> http://mk:3000
       STAGE: production
       CLIENT_MAX_BODY_SIZE: 0
       WEBSOCKET: true
@@ -172,12 +214,12 @@ services:
     container_name: ts
     restart: unless-stopped
     env_file:
-      - tailscale.env
+      - config/tailscale/env
     environment:
       - TS_SERVE_CONFIG=/config/ts-serve.json
     volumes:
       - "ts-data:/var/lib"
-      - "./ts-serve.json:/config/ts-serve.json"
+      - "./config/tailscale/ts-serve.json:/config/ts-serve.json"
       - "/dev/net/tun:/dev/net/tun"
     cap_add:
       - net_admin

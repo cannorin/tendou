@@ -14,3 +14,5 @@ mkdir -p ./data/ts
 mkdir -p ./data/gitea
 sudo chown -R 1000:1000 data/gitea 
 mkdir -p ./data/gitea-pg
+mkdir -p ./data/mk
+mkdir -p ./data/mk-pg
