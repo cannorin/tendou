@@ -225,6 +225,23 @@ services:
       - net_admin
       - sys_module
 
+  backup:
+    # In production, it is advised to lock your image tag to a proper
+    # release version instead of using `latest`.
+    # Check https://github.com/offen/docker-volume-backup/releases
+    # for a list of available releases.
+    image: offen/docker-volume-backup:v2.43.0
+    container_name: backup
+    restart: always
+    env_file: ./config/backup/env # see below for configuration reference
+    volumes:
+      - ./data/nc:/backup/nc:ro
+      - ./data/nc-mariadb:/backup/nc-mariadb:ro
+      - ./data/gitea:/backup/gitea:ro
+      - ./data/gitea-pg:/backup/gitea-pg:ro
+      - ./data/mk:/backup/mk:ro
+      - ./data/mk-pg:/backup/mk-pg:ro
+
 volumes:
   nc-data:
     driver: local
