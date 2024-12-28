@@ -207,6 +207,21 @@ services:
       - /var/log:/host/var/log:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: 1h
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 12g
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
+
   ## Tailscale for private services
 
   tailscale:
