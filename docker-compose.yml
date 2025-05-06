@@ -4,7 +4,7 @@ services:
   ## Nextcloud
 
   nc:
-    image: nextcloud:29
+    image: nextcloud:29.0.12
     container_name: nc
     depends_on:
       - nc-mariadb
@@ -33,7 +33,7 @@ services:
       - nc-data:/var/www/html
 
   nc-cron:
-    image: nextcloud:29
+    image: nextcloud:29.0.12
     container_name: nc-cron
     restart: unless-stopped
     depends_on:
@@ -126,9 +126,9 @@ services:
         condition: service_healthy
       mk-redis:
         condition: service_healthy
-    restart: always
     ports:
       - "3000:3000"
+    restart: always
     env_file:
       - config/misskey/env
     volumes:
@@ -136,7 +136,7 @@ services:
       - ./config/misskey:/misskey/.config:ro
   
   mk-pg:
-    image: postgres:15-alpine
+    image: groonga/pgroonga:latest-alpine-15
     container_name: mk-pg
     restart: always
     env_file:
@@ -156,6 +156,8 @@ services:
       test: "redis-cli ping"
       interval: 5s
       retries: 20
+    volumes:
+      - ./data/mk-redis:/data
 
   ## Reverse proxy for public services
 
@@ -182,41 +184,40 @@ services:
 
   ## Netdata
 
-  netdata:
-    image: netdata/netdata
-    container_name: nd
-    pid: host
-    network_mode: service:tailscale
-    restart: unless-stopped
-    cap_add:
-      - SYS_PTRACE
-      - SYS_ADMIN
-    security_opt:
-      - apparmor:unconfined
-    volumes:
-      - nd-config:/etc/netdata
-      - nd-lib:/var/lib/netdata
-      - nd-cache:/var/cache/netdata
-      - /:/host/root:ro,rslave
-      - /etc/passwd:/host/etc/passwd:ro
-      - /etc/group:/host/etc/group:ro
-      - /etc/localtime:/etc/localtime:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /etc/os-release:/host/etc/os-release:ro
-      - /var/log:/host/var/log:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+  # netdata:
+  #   image: netdata/netdata
+  #   container_name: nd
+  #   pid: host
+  #   network_mode: service:tailscale
+  #   restart: unless-stopped
+  #   cap_add:
+  #     - SYS_PTRACE
+  #     - SYS_ADMIN
+  #   security_opt:
+  #     - apparmor:unconfined
+  #   volumes:
+  #     - nd-config:/etc/netdata
+  #     - nd-lib:/var/lib/netdata
+  #     - nd-cache:/var/cache/netdata
+  #     - /:/host/root:ro,rslave
+  #     - /etc/passwd:/host/etc/passwd:ro
+  #     - /etc/group:/host/etc/group:ro
+  #     - /etc/localtime:/etc/localtime:ro
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /etc/os-release:/host/etc/os-release:ro
+  #     - /var/log:/host/var/log:ro
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
 
   ollama:
-    image: ollama/ollama:latest
+    image: alpine/ollama:latest
     container_name: ollama
-    environment:
-      OLLAMA_KEEP_ALIVE: 1h
     deploy:
       resources:
         limits:
           cpus: 2
-          memory: 12g
+    environment:
+      OLLAMA_KEEP_ALIVE: 1h
     ports:
       - "11434:11434"
     volumes:
@@ -224,21 +225,21 @@ services:
 
   ## Tailscale for private services
 
-  tailscale:
-    image: ghcr.io/tailscale/tailscale:v1.74.1
-    container_name: ts
-    restart: unless-stopped
-    env_file:
-      - config/tailscale/env
-    environment:
-      - TS_SERVE_CONFIG=/config/ts-serve.json
-    volumes:
-      - "ts-data:/var/lib"
-      - "./config/tailscale/ts-serve.json:/config/ts-serve.json"
-      - "/dev/net/tun:/dev/net/tun"
-    cap_add:
-      - net_admin
-      - sys_module
+  # tailscale:
+  #   image: ghcr.io/tailscale/tailscale:v1.74.1
+  #   container_name: ts
+  #   restart: unless-stopped
+  #   env_file:
+  #     - config/tailscale/env
+  #   environment:
+  #     - TS_SERVE_CONFIG=/config/ts-serve.json
+  #   volumes:
+  #     - "ts-data:/var/lib"
+  #     - "./config/tailscale/ts-serve.json:/config/ts-serve.json"
+  #     - "/dev/net/tun:/dev/net/tun"
+  #   cap_add:
+  #     - net_admin
+  #     - sys_module
 
   backup:
     # In production, it is advised to lock your image tag to a proper
