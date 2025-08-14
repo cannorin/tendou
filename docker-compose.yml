@@ -182,65 +182,6 @@ services:
 
   # Private services
 
-  ## Netdata
-
-  # netdata:
-  #   image: netdata/netdata
-  #   container_name: nd
-  #   pid: host
-  #   network_mode: service:tailscale
-  #   restart: unless-stopped
-  #   cap_add:
-  #     - SYS_PTRACE
-  #     - SYS_ADMIN
-  #   security_opt:
-  #     - apparmor:unconfined
-  #   volumes:
-  #     - nd-config:/etc/netdata
-  #     - nd-lib:/var/lib/netdata
-  #     - nd-cache:/var/cache/netdata
-  #     - /:/host/root:ro,rslave
-  #     - /etc/passwd:/host/etc/passwd:ro
-  #     - /etc/group:/host/etc/group:ro
-  #     - /etc/localtime:/etc/localtime:ro
-  #     - /proc:/host/proc:ro
-  #     - /sys:/host/sys:ro
-  #     - /etc/os-release:/host/etc/os-release:ro
-  #     - /var/log:/host/var/log:ro
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
-
-  ollama:
-    image: alpine/ollama:latest
-    container_name: ollama
-    deploy:
-      resources:
-        limits:
-          cpus: 2
-    environment:
-      OLLAMA_KEEP_ALIVE: 1h
-    ports:
-      - "11434:11434"
-    volumes:
-      - ./data/ollama:/root/.ollama
-
-  ## Tailscale for private services
-
-  # tailscale:
-  #   image: ghcr.io/tailscale/tailscale:v1.74.1
-  #   container_name: ts
-  #   restart: unless-stopped
-  #   env_file:
-  #     - config/tailscale/env
-  #   environment:
-  #     - TS_SERVE_CONFIG=/config/ts-serve.json
-  #   volumes:
-  #     - "ts-data:/var/lib"
-  #     - "./config/tailscale/ts-serve.json:/config/ts-serve.json"
-  #     - "/dev/net/tun:/dev/net/tun"
-  #   cap_add:
-  #     - net_admin
-  #     - sys_module
-
   backup:
     # In production, it is advised to lock your image tag to a proper
     # release version instead of using `latest`.
