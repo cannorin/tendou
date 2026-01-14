@@ -5,6 +5,10 @@ SCRIPT_DIR="$(dirname "$0")"
 cd $SCRIPT_DIR/../
 
 # Keep this in sync with Docker volumes
+mkdir -p ./data/oc
+mkdir -p ./data/oc/config
+mkdir -p ./data/oc/data
+sudo chown -R 1000:1000 ./data/oc
 mkdir -p ./data/nc
 mkdir -p ./data/nc-mariadb
 mkdir -p ./data/nd/cache

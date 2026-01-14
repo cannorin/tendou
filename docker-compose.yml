@@ -1,6 +1,31 @@
 services:
   # Public services
 
+  ## OpenCloud
+
+  oc:
+    image: opencloudeu/opencloud:latest
+    container_name: oc
+    hostname: files.${DOMAIN}
+    entrypoint:
+      - /bin/sh
+    # run opencloud init to initialize a configuration file with random secrets
+    # it will fail on subsequent runs, because the config file already exists
+    # therefore we ignore the error and then start the opencloud server
+    command: ["-c", "opencloud init || true; opencloud server"]
+    ports:
+      - "9200:9200"
+    restart: always
+    env_file:
+      - config/opencloud/env
+    extra_hosts:
+      - "files.${DOMAIN}:host-gateway"
+    volumes:
+      - ./config/opencloud/csp.yaml:/etc/opencloud/csp.yaml
+      - ./config/opencloud/banned-password-list.txt:/etc/opencloud/banned-password-list.txt
+      - oc-config:/etc/opencloud
+      - oc-data:/var/lib/opencloud
+
   ## Nextcloud
 
   nc:
@@ -172,7 +197,8 @@ services:
       DOMAINS: >-
         cloud.${DOMAIN} -> http://nc,
         git.${DOMAIN} -> http://gitea,
-        misskey.${DOMAIN} -> http://mk:3000
+        misskey.${DOMAIN} -> http://mk:3000,
+        files.${DOMAIN} -> http://oc:9200
       STAGE: production
       CLIENT_MAX_BODY_SIZE: 0
       WEBSOCKET: true
@@ -192,6 +218,8 @@ services:
     restart: always
     env_file: ./config/backup/env # see below for configuration reference
     volumes:
+      - ./data/oc/config:/backup/oc-config:ro
+      - ./data/oc/data:/backup/oc-data:ro
       - ./data/nc:/backup/nc:ro
       - ./data/nc-mariadb:/backup/nc-mariadb:ro
       - ./data/gitea:/backup/gitea:ro
@@ -200,6 +228,18 @@ services:
       - ./data/mk-pg:/backup/mk-pg:ro
 
 volumes:
+  oc-config:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/oc/config
+      o: bind
+  oc-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/oc/data
+      o: bind
   nc-data:
     driver: local
     driver_opts:
