@@ -26,84 +26,6 @@ services:
       - oc-config:/etc/opencloud
       - oc-data:/var/lib/opencloud
 
-  ## Nextcloud
-
-  nc:
-    image: nextcloud:30
-    container_name: nc
-    depends_on:
-      - nc-mariadb
-      - nc-redis
-    hostname: cloud.${DOMAIN}
-    env_file:
-      - config/nextcloud/env
-      - config/smtp/env
-    environment:
-      # reverse proxy
-      APACHE_DISABLE_REWRITE_IP: 1
-      TRUSTED_PROXIES: "127.0.0.1/32 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16"
-      NEXTCLOUD_TRUSTED_DOMAINS: cloud.${DOMAIN}
-      OVERWRITECLIURL: https://cloud.${DOMAIN}
-      OVERWRITEHOST: cloud.${DOMAIN}
-      OVERWRITEPROTOCOL: https
-      # db
-      MYSQL_HOST: nc-mariadb
-      MYSQL_DATABASE: nextcloud
-      MYSQL_USER: nextcloud
-      MYSQL_PASSWORD: nextcloud
-      # redis
-      REDIS_HOST: nc-redis
-    restart: always
-    volumes:
-      - nc-data:/var/www/html
-
-  nc-cron:
-    image: nextcloud:30
-    container_name: nc-cron
-    restart: unless-stopped
-    depends_on:
-      - nc
-    hostname: cloud.${DOMAIN}
-    env_file:
-      - config/nextcloud/env
-      - config/smtp/env
-    environment:
-      # reverse proxy
-      APACHE_DISABLE_REWRITE_IP: 1
-      TRUSTED_PROXIES: "127.0.0.1/32 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16"
-      NEXTCLOUD_TRUSTED_DOMAINS: cloud.${DOMAIN}
-      OVERWRITECLIURL: https://cloud.${DOMAIN}
-      OVERWRITEHOST: cloud.${DOMAIN}
-      OVERWRITEPROTOCOL: https
-      # db
-      MYSQL_HOST: nc-mariadb
-      MYSQL_DATABASE: nextcloud
-      MYSQL_USER: nextcloud
-      MYSQL_PASSWORD: nextcloud
-      # redis
-      REDIS_HOST: nc-redis
-    volumes:
-      - nc-data:/var/www/html
-    entrypoint: /cron.sh
-
-  nc-mariadb:
-    image: mariadb:10.11
-    container_name: nc-mariadb
-    restart: always
-    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
-    volumes:
-      - nc-mariadb-data:/var/lib/mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: nextcloud
-      MYSQL_PASSWORD: nextcloud
-      MYSQL_DATABASE: nextcloud
-      MYSQL_USER: nextcloud
-
-  nc-redis:
-    image: redis:alpine
-    container_name: nc-redis
-    restart: always
-
   ## Gitea
 
   gitea:
@@ -197,7 +119,6 @@ services:
     restart: always
     environment:
       DOMAINS: >-
-        cloud.${DOMAIN} -> http://nc,
         git.${DOMAIN} -> http://gitea,
         misskey.${DOMAIN} -> http://mk:3000,
         files.${DOMAIN} -> http://oc:9200
@@ -222,8 +143,6 @@ services:
     volumes:
       - ./data/oc/config:/backup/oc-config:ro
       - ./data/oc/data:/backup/oc-data:ro
-      - ./data/nc:/backup/nc:ro
-      - ./data/nc-mariadb:/backup/nc-mariadb:ro
       - ./data/gitea:/backup/gitea:ro
       - ./data/gitea-pg:/backup/gitea-pg:ro
       - ./data/mk:/backup/mk:ro
@@ -241,42 +160,6 @@ volumes:
     driver_opts:
       type: none
       device: $PWD/data/oc/data
-      o: bind
-  nc-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: $PWD/data/nc
-      o: bind
-  nc-mariadb-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: $PWD/data/nc-mariadb
-      o: bind
-  nd-config:
-    driver: local
-    driver_opts:
-      type: none
-      device: $PWD/data/nd/config
-      o: bind
-  nd-lib:
-    driver: local
-    driver_opts:
-      type: none
-      device: $PWD/data/nd/lib
-      o: bind
-  nd-cache:
-    driver: local
-    driver_opts:
-      type: none
-      device: $PWD/data/nd/cache
-      o: bind
-  ts-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: $PWD/data/ts
       o: bind
   gitea-data:
     driver: local

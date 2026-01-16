@@ -5,8 +5,7 @@ SCRIPT_DIR="$(dirname "$0")"
 cd $SCRIPT_DIR/../
 
 docker run --rm \
-  -v ./data/nc:/backup/nc:ro \
-  -v ./data/nc-mariadb:/backup/nc-mariadb:ro \
+  -v ./data/oc:/backup/pc:ro \
   -v ./data/gitea:/backup/gitea:ro \
   -v ./data/gitea-pg:/backup/gitea-pg:ro \
   -v ./data/mk:/backup/mk:ro \
