@@ -152,6 +152,11 @@ services:
       GITEA_INSTANCE_URL: https://git.${DOMAIN}
     env_file:
       - config/gitea-runner/env
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
 
   backup:
     # In production, it is advised to lock your image tag to a proper
