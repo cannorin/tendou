@@ -12,5 +12,5 @@ docker run --rm \
   -v ./data/mk-pg:/backup/mk-pg:ro \
   --env-file ./config/backup/env \
   --entrypoint backup \
-  offen/docker-volume-backup:v2.43.0 \
+  offen/docker-volume-backup:v2.43.4 \
   backup --foreground

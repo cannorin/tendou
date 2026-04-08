@@ -47,6 +47,12 @@ services:
       - GITEA__server__LFS_START_SERVER=true
       - GITEA__server__LFS_CONTENT_PATH=/data/git/lfs
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "https://git.${DOMAIN}"]
+      interval: 10s
+      retries: 3
+      start_period: 30s
+      timeout: 10s
     ports:
       - "2222:22"
     volumes:
@@ -130,6 +136,22 @@ services:
       - https-portal-data:/var/lib/https-portal
 
   # Private services
+
+  gitea-runner:
+    image: gitea/act_runner:latest
+    container_name: gitea-runner
+    restart: always
+    depends_on:
+      gitea:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./data/gitea-runner:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      GITEA_INSTANCE_URL: https://git.${DOMAIN}
+    env_file:
+      - config/gitea-runner/env
 
   backup:
     # In production, it is advised to lock your image tag to a proper
