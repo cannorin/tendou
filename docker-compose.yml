@@ -4,15 +4,9 @@ services:
   ## OpenCloud
 
   oc:
-    image: opencloudeu/opencloud:latest
+    image: opencloudeu/opencloud:4.0.5
     container_name: oc
     hostname: files.${DOMAIN}
-    entrypoint:
-      - /bin/sh
-    # run opencloud init to initialize a configuration file with random secrets
-    # it will fail on subsequent runs, because the config file already exists
-    # therefore we ignore the error and then start the opencloud server
-    command: ["-c", "opencloud init || true; opencloud server"]
     ports:
       - "9200:9200"
     restart: always
@@ -46,7 +40,7 @@ services:
       - GITEA__database__PASSWD=gitea
       - GITEA__server__LFS_START_SERVER=true
       - GITEA__server__LFS_CONTENT_PATH=/data/git/lfs
-    restart: always
+    restart: unless-stopped
     ports:
       - "2222:22"
     volumes:
@@ -57,7 +51,7 @@ services:
   gitea-pg:
     image: postgres:14
     container_name: gitea-pg
-    restart: always
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=gitea
       - POSTGRES_PASSWORD=gitea
@@ -77,7 +71,7 @@ services:
         condition: service_healthy
     ports:
       - "3000:3000"
-    restart: always
+    restart: unless-stopped
     env_file:
       - config/misskey/env
     volumes:
@@ -87,7 +81,7 @@ services:
   mk-pg:
     image: groonga/pgroonga:latest-alpine-15
     container_name: mk-pg
-    restart: always
+    restart: unless-stopped
     env_file:
       - config/misskey/env
     healthcheck:
@@ -100,13 +94,27 @@ services:
   mk-redis:
     image: redis:7-alpine
     container_name: mk-redis
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: "redis-cli ping"
       interval: 5s
       retries: 20
     volumes:
       - ./data/mk-redis:/data
+
+  lmp:
+    image: ghcr.io/lunamultiplayer/lunamultiplayer/server:0.29.2
+    container_name: lmp
+    restart: unless-stopped
+    environment:
+      - TZ=JST
+    ports:
+      - "8800:8800/udp"
+      - "8900:8900"
+    volumes:
+      - ./data/lmp/Config:/LMPServer/Config
+      - ./data/lmp/Plugins:/LMPServer/Plugins
+      - ./data/lmp/Universe:/LMPServer/Universe
 
   ## Reverse proxy for public services
 
@@ -121,7 +129,8 @@ services:
       DOMAINS: >-
         git.${DOMAIN} -> http://gitea,
         misskey.${DOMAIN} -> http://mk:3000,
-        files.${DOMAIN} -> http://oc:9200
+        files.${DOMAIN} -> http://oc:9200,
+        lmp.${DOMAIN} -> http://lmp:8900
       STAGE: production
       CLIENT_MAX_BODY_SIZE: 0
       WEBSOCKET: true

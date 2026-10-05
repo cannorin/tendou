@@ -15,3 +15,7 @@ mkdir -p ./data/gitea-pg
 mkdir -p ./data/mk
 mkdir -p ./data/mk-pg
 mkdir -p ./data/mk-redis
+mkdir -p ./data/lmp/Config
+mkdir -p ./data/lmp/logs
+mkdir -p ./data/lmp/Plugins
+mkdir -p ./data/lmp/Universe
